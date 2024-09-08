@@ -3,7 +3,20 @@ import Property from '../models/property.model.js';
 // Crear una propiedad nueva
 export const createProperty = async (req, res) => {
   try {
-    const { title, price, location, bedrooms, bathrooms, squaremeters, description, type, propertyType } = req.body;
+    const {
+      title,
+      price,
+      location,
+      bedrooms,
+      bathrooms,
+      squaremeters,
+      description,
+      type,
+      propertyType,
+      contactNumber, // Nuevo campo para el número de contacto
+      isFeatured // Nuevo campo para destacar la propiedad
+    } = req.body;
+
     const imagePaths = req.files.map(file => {
       const url = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
       return url;
@@ -18,8 +31,10 @@ export const createProperty = async (req, res) => {
       squaremeters,
       description,
       images: imagePaths,
-      type, // Incluyendo el campo 'type'
-      propertyType // Incluyendo el nuevo campo 'propertyType'
+      type,
+      propertyType,
+      contactNumber, // Guardando el número de contacto
+      isFeatured: isFeatured === 'true' // Asegurando que 'isFeatured' sea un booleano
     });
 
     const savedProperty = await newProperty.save();
@@ -32,7 +47,7 @@ export const createProperty = async (req, res) => {
 // Obtener todas las propiedades, con posibilidad de filtrar por tipo, ubicación y precio
 export const getProperties = async (req, res) => {
   try {
-    const { type, propertyType, location, minPrice, maxPrice } = req.query; // Obteniendo los filtros de la query string
+    const { type, propertyType, location, minPrice, maxPrice, isFeatured } = req.query; // Incluyendo el filtro 'isFeatured'
     const query = {};
 
     if (type && type !== 'all') {
@@ -53,6 +68,10 @@ export const getProperties = async (req, res) => {
 
     if (maxPrice) {
       query.price = { ...query.price, $lte: Number(maxPrice) }; // Precio máximo
+    }
+
+    if (isFeatured) {
+      query.isFeatured = isFeatured === 'true'; // Filtra propiedades destacadas
     }
 
     const properties = await Property.find(query);

@@ -45,6 +45,14 @@ const propertySchema = new mongoose.Schema({
     required: true,
     default: 'House', // Valor por defecto
   },
+  contactNumber: {
+    type: String,
+    required: true, // El número de teléfono del publicador es requerido
+  },
+  isFeatured: {
+    type: Boolean,
+    default: false, // Valor por defecto es 'false' (no destacado)
+  },
 });
 
 const Property = mongoose.model('Property', propertySchema);
