@@ -13,14 +13,17 @@ export const createProperty = async (req, res) => {
       description,
       type,
       propertyType,
-      contactNumber, // Nuevo campo para el número de contacto
-      isFeatured // Nuevo campo para destacar la propiedad
+      contactNumber,
+      isFeatured
     } = req.body;
 
     const imagePaths = req.files.map(file => {
       const url = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
       return url;
     });
+
+    // Obteniendo el ID del usuario autenticado
+    const userId = req.user.id;
 
     const newProperty = new Property({
       title,
@@ -33,8 +36,9 @@ export const createProperty = async (req, res) => {
       images: imagePaths,
       type,
       propertyType,
-      contactNumber, // Guardando el número de contacto
-      isFeatured: isFeatured === 'true' // Asegurando que 'isFeatured' sea un booleano
+      contactNumber,
+      isFeatured: isFeatured === 'true',
+      user: userId // Asignando el usuario autenticado como propietario de la propiedad
     });
 
     const savedProperty = await newProperty.save();
@@ -47,7 +51,7 @@ export const createProperty = async (req, res) => {
 // Obtener todas las propiedades, con posibilidad de filtrar por tipo, ubicación y precio
 export const getProperties = async (req, res) => {
   try {
-    const { type, propertyType, location, minPrice, maxPrice, isFeatured } = req.query; // Incluyendo el filtro 'isFeatured'
+    const { type, propertyType, location, minPrice, maxPrice, isFeatured } = req.query;
     const query = {};
 
     if (type && type !== 'all') {
@@ -59,19 +63,19 @@ export const getProperties = async (req, res) => {
     }
 
     if (location) {
-      query.location = { $regex: location, $options: 'i' }; // Filtro por ubicación con búsqueda insensible a mayúsculas/minúsculas
+      query.location = { $regex: location, $options: 'i' };
     }
 
     if (minPrice) {
-      query.price = { ...query.price, $gte: Number(minPrice) }; // Precio mínimo
+      query.price = { ...query.price, $gte: Number(minPrice) };
     }
 
     if (maxPrice) {
-      query.price = { ...query.price, $lte: Number(maxPrice) }; // Precio máximo
+      query.price = { ...query.price, $lte: Number(maxPrice) };
     }
 
     if (isFeatured) {
-      query.isFeatured = isFeatured === 'true'; // Filtra propiedades destacadas
+      query.isFeatured = isFeatured === 'true';
     }
 
     const properties = await Property.find(query);

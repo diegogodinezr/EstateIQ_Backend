@@ -53,6 +53,15 @@ const propertySchema = new mongoose.Schema({
     type: Boolean,
     default: false, // Valor por defecto es 'false' (no destacado)
   },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // Hace referencia al modelo User
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now, // Agrega la fecha de creación automáticamente
+  },
 });
 
 const Property = mongoose.model('Property', propertySchema);
