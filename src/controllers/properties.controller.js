@@ -96,3 +96,49 @@ export const getProperty = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+// Actualizar propiedad
+export const updateProperty = async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const property = await Property.findById(id);
+
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+
+    // Verifica si la propiedad pertenece al usuario logueado
+    if (property.user.toString() !== userId) {
+      return res.status(403).json({ message: 'You are not authorized to update this property' });
+    }
+
+    // Actualiza los campos de la propiedad
+    const updatedProperty = await Property.findByIdAndUpdate(id, req.body, { new: true });
+    return res.json(updatedProperty);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Eliminar propiedad
+export const deleteProperty = async (req, res) => {
+  const { id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const property = await Property.findById(id);
+
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+
+    // Verifica si la propiedad pertenece al usuario logueado
+    if (property.user.toString() !== userId) {
+      return res.status(403).json({ message: 'You are not authorized to delete this property' });
+    }
+
+    // Elimina la propiedad
+    await Property.findByIdAndDelete(id);
+    return res.json({ message: 'Property deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
