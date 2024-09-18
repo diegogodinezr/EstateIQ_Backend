@@ -1,6 +1,4 @@
-import exp from 'constants';
 import mongoose from 'mongoose';
-
 
 const userSchema = new mongoose.Schema({
     email: {
@@ -12,7 +10,12 @@ const userSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
+    },
+    role: {
+        type: String,
+        default: 'user', // El rol por defecto es 'user'
+        enum: ['user', 'admin'] // Solo puede ser 'user' o 'admin'
     }
-})
+});
 
 export default mongoose.model('User', userSchema);
