@@ -62,6 +62,24 @@ const propertySchema = new mongoose.Schema({
     type: Date,
     default: Date.now, // Agrega la fecha de creación automáticamente
   },
+
+  // Nuevos campos para estadísticas
+  views: {
+    type: Number,
+    default: 0, // Contador de visualizaciones
+  },
+  deletedAt: {
+    type: Date, // Fecha de eliminación
+  },
+  deleteReason: {
+    type: String, // Motivo de eliminación (completada, cancelada, etc.)
+    enum: ['completed', 'cancelled', 'other'],
+  },
+  status: {
+    type: String,
+    enum: ['active', 'deleted'], // Estado de la propiedad: activa o eliminada
+    default: 'active', // Valor por defecto es activa
+  },
 });
 
 const Property = mongoose.model('Property', propertySchema);
