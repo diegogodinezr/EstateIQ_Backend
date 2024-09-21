@@ -174,10 +174,21 @@ export const logout =  (req, res) => {
 };
 
 export const profile = async (req, res) => {
-    const userFound = await User.findById(req.user.id)
-    if (!userFound) return res.status(400).json({message: 'User not found'});
-    return res.json({
-        id: userFound._id,
-        email: userFound.email,
-    });
+    try {
+        // Buscar al usuario por su ID
+        const userFound = await User.findById(req.user.id);
+        if (!userFound) return res.status(400).json({ message: 'User not found' });
+
+        // Buscar las propiedades publicadas por este usuario
+        const userProperties = await Property.find({ user: req.user.id }); // Relaciona las propiedades con el usuario logueado
+
+        // Responder con la información del usuario y sus propiedades
+        return res.json({
+            id: userFound._id,
+            email: userFound.email,
+            properties: userProperties,  // Aquí incluimos las propiedades del usuario
+        });
+    } catch (error) {
+        return res.status(500).json({ message: 'Error retrieving profile information' });
+    }
 };
