@@ -17,6 +17,14 @@ export const createProperty = async (req, res) => {
       isFeatured
     } = req.body;
 
+    // Normalizar la ubicación: convertir a minúsculas y eliminar caracteres especiales
+    let normalizedLocation = location.toLowerCase().replace(/[^a-z0-9\s]/gi, '');
+
+    // Verificar que la ubicación sea válida (puedes hacer una validación más avanzada si es necesario)
+    if (!validator.isAlphanumeric(normalizedLocation.replace(/\s/g, ''))) {
+      return res.status(400).json({ message: 'Invalid location format' });
+    }
+
     const imagePaths = req.files.map(file => {
       const url = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
       return url;
@@ -28,7 +36,7 @@ export const createProperty = async (req, res) => {
     const newProperty = new Property({
       title,
       price,
-      location,
+      location: normalizedLocation, // Usar la ubicación normalizada
       bedrooms,
       bathrooms,
       squaremeters,
