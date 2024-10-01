@@ -1,4 +1,5 @@
 import Property from '../models/property.model.js';
+import validator from 'validator';
 
 // Crear una propiedad nueva
 export const createProperty = async (req, res) => {
