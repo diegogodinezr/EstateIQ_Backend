@@ -1,17 +1,14 @@
 import multer from 'multer';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
+import cloudinary from '../cloudinaryConfig.js'; // Importamos la configuración de Cloudinary
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Configuración de almacenamiento de Multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, 'uploads'));
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+// Configuración de almacenamiento en Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'uploads', // Carpeta en Cloudinary donde se guardarán las imágenes
+    allowed_formats: ['jpg', 'png', 'jpeg'], // Formatos permitidos
+    public_id: (req, file) => `${Date.now()}-${file.originalname}`, // Nombre del archivo en Cloudinary
   },
 });
 

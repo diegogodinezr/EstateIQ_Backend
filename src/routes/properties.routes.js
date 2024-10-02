@@ -7,7 +7,7 @@ import {
   updateProperty, 
   deleteProperty 
 } from '../controllers/properties.controller.js';
-import upload from '../multerConfig.js'; // Importa Multer
+import upload from '../multerConfig.js'; // Importamos la nueva configuración de Multer con Cloudinary
 
 const router = Router();
 

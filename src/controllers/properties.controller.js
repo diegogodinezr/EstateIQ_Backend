@@ -18,18 +18,16 @@ export const createProperty = async (req, res) => {
       isFeatured
     } = req.body;
 
-    // Normalizar la ubicación: convertir a minúsculas y eliminar caracteres especiales
+    // Normalizar la ubicación
     let normalizedLocation = location.toLowerCase().replace(/[^a-z0-9\s]/gi, '');
 
-    // Verificar que la ubicación sea válida (puedes hacer una validación más avanzada si es necesario)
+    // Verificar que la ubicación sea válida
     if (!validator.isAlphanumeric(normalizedLocation.replace(/\s/g, ''))) {
       return res.status(400).json({ message: 'Invalid location format' });
     }
 
-    const imagePaths = req.files.map(file => {
-      const url = `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
-      return url;
-    });
+    // Obtener las URLs de las imágenes subidas a Cloudinary
+    const imagePaths = req.files.map(file => file.path); // Obtiene la URL pública de Cloudinary
 
     // Obteniendo el ID del usuario autenticado
     const userId = req.user.id;
@@ -37,7 +35,7 @@ export const createProperty = async (req, res) => {
     const newProperty = new Property({
       title,
       price,
-      location: normalizedLocation, // Usar la ubicación normalizada
+      location: normalizedLocation,
       bedrooms,
       bathrooms,
       squaremeters,
@@ -56,6 +54,8 @@ export const createProperty = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+// Los demás controladores no necesitan modificación, ya que no manejan las imágenes directamente.
 
 // Obtener todas las propiedades, con posibilidad de filtrar por tipo, ubicación, precio, y destacadas
 export const getProperties = async (req, res) => {
