@@ -3,8 +3,8 @@ import { TOKEN_SECRET } from '../config.js';
 import User from '../models/user.model.js'; // Importa el modelo de usuario para buscar en la base de datos
 
 export const authRequired = async (req, res, next) => {
-    const { token } = req.cookies;
-    
+    const token = req.headers['authorization']?.split(' ')[1]; // Cambiado para obtener el token del encabezado
+
     if (!token) {
         return res.status(401).json({ message: 'No token, authorization denied' });
     }
