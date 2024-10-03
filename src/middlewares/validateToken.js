@@ -4,7 +4,8 @@ import User from '../models/user.model.js'; // Importa el modelo de usuario para
 
 export const authRequired = async (req, res, next) => {
     const { token } = req.cookies;
-    
+    console.log("Token from cookies:", token);  // Agrega este log para verificar
+
     if (!token) {
         return res.status(401).json({ message: 'No token, authorization denied' });
     }
