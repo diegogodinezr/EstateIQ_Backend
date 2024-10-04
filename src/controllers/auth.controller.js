@@ -1,7 +1,80 @@
+// import { createAccessToken } from '../libs/jwt.js';
 import User from '../models/user.model.js';
 import bcrypt from 'bcryptjs';
-import { createAccessToken } from '../libs/jwt.js';
-import Property from '../models/property.model.js';  // Usamos tu modelo de propiedades
+import jwt from 'jsonwebtoken';
+import { TOKEN_SECRET } from '../config.js';
+import Property from '../models/property.model.js';
+
+const createToken = (payload) => {
+  return jwt.sign(payload, TOKEN_SECRET, { expiresIn: '1d' });
+};
+
+export const register = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const userFound = await User.findOne({ email });
+    if (userFound) return res.status(400).json(['The email is already in use']);
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    const newUser = new User({
+      email,
+      password: passwordHash,
+    });
+
+    const userSaved = await newUser.save();
+    const token = createToken({ id: userSaved._id });
+
+    res.json({
+      id: userSaved._id,
+      email: userSaved.email,
+      token: token
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const userFound = await User.findOne({ email });
+    if (!userFound) return res.status(400).json({ message: "User not found" });
+
+    const isMatch = await bcrypt.compare(password, userFound.password);
+    if (!isMatch) return res.status(400).json({ message: "Incorrect password" });
+
+    const token = createToken({ id: userFound._id });
+
+    res.json({
+      id: userFound._id,
+      email: userFound.email,
+      token: token
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const logout = (req, res) => {
+  res.json({ message: "Logout successful" });
+};
+
+export const profile = async (req, res) => {
+  try {
+    const userFound = await User.findById(req.user.id);
+    if (!userFound) return res.status(400).json({ message: "User not found" });
+
+    const userProperties = await Property.find({ user: req.user.id });
+
+    return res.json({
+      id: userFound._id,
+      email: userFound.email,
+      properties: userProperties,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: 'Error retrieving profile information' });
+  }
+};
 
 export const getStatistics = async (req, res) => {
     try {
@@ -122,73 +195,3 @@ export const getStatistics = async (req, res) => {
     }
 };
 
-
-export const register = async (req, res) => {
-    const {email, password} = req.body;
-    try {
-        const passwordHash = await bcrypt.hash(password, 10, );
-        const newUser = new User({
-            email,
-            password: passwordHash,
-        });
-    
-        const userSaved = await newUser.save();
-        const token = await createAccessToken({id: userSaved._id})
-            res.cookie('token', token);
-            res.json({
-                _id: userSaved._id,
-                email: userSaved.email,
-        });
-    }   catch (error) {
-        res.status(500).json({message: error.message});
-    }
-};
-
-export const login = async (req, res) => {
-    const {email, password} = req.body;
-    try {
-        const userFound = await User.findOne({email});
-
-        if (!userFound) return res.status(400).json({message: 'User not found'});
-
-        const isMatch = await bcrypt.compare(password, userFound.password);
-
-        if (!isMatch) return res.status(400).json({message: 'Incorrect password'});
-    
-        const token = await createAccessToken({id: userFound._id})
-            res.cookie('token', token);
-            res.json({
-                _id: userFound._id,
-                email: userFound.email,
-        });
-    }   catch (error) {
-        res.status(500).json({message: error.message});
-    }
-};
-
-export const logout =  (req, res) => {
-    res.cookie('token', '', {
-        expires: new Date(0)
-    });
-    return res.sendStatus(200);
-};
-
-export const profile = async (req, res) => {
-    try {
-        // Buscar al usuario por su ID
-        const userFound = await User.findById(req.user.id);
-        if (!userFound) return res.status(400).json({ message: 'User not found' });
-
-        // Buscar las propiedades publicadas por este usuario
-        const userProperties = await Property.find({ user: req.user.id }); // Relaciona las propiedades con el usuario logueado
-
-        // Responder con la información del usuario y sus propiedades
-        return res.json({
-            id: userFound._id,
-            email: userFound.email,
-            properties: userProperties,  // Aquí incluimos las propiedades del usuario
-        });
-    } catch (error) {
-        return res.status(500).json({ message: 'Error retrieving profile information' });
-    }
-};

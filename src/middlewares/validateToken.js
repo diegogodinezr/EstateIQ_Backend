@@ -1,28 +1,28 @@
 import jwt from 'jsonwebtoken';
 import { TOKEN_SECRET } from '../config.js';
-import User from '../models/user.model.js'; // Importa el modelo de usuario para buscar en la base de datos
+import User from '../models/user.model.js';
 
 export const authRequired = async (req, res, next) => {
-    const { token } = req.cookies;
-    console.log("Token from cookies:", token);  // Agrega este log para verificar
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
 
-    if (!token) {
-        return res.status(401).json({ message: 'No token, authorization denied' });
-    }
+  if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
 
-    jwt.verify(token, TOKEN_SECRET, async (err, decoded) => {
-        if (err) return res.status(403).json({ message: 'Invalid token' });
+  try {
+    const decoded = jwt.verify(token, TOKEN_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(403).json({ message: 'Invalid token' });
+  }
+};
 
-        try {
-            // Buscar el usuario en la base de datos usando el ID decodificado del token
-            const user = await User.findById(decoded.id);
-            if (!user) return res.status(404).json({ message: 'User not found' });
-
-            // Añadir el usuario completo al request
-            req.user = user;
-            next();
-        } catch (error) {
-            return res.status(500).json({ message: 'Error fetching user from database' });
-        }
-    });
+export const isAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Access denied. Admin role required.' });
+  }
 };
