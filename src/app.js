@@ -9,7 +9,7 @@ const app = express();
 
 // Configura CORS para permitir el frontend
 app.use(cors({
-  origin: 'https://estate-iq-web.vercel.app/', // Cambia esto a la URL de tu frontend
+  origin: 'https://estate-iq-web.vercel.app', // Cambia esto a la URL de tu frontend
   credentials: true, // Permite el envío de cookies
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
