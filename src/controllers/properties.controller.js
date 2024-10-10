@@ -126,13 +126,25 @@ export const updateProperty = async (req, res) => {
       return res.status(403).json({ message: 'You are not authorized to update this property' });
     }
 
-    // Actualiza los campos de la propiedad
-    const updatedProperty = await Property.findByIdAndUpdate(id, req.body, { new: true });
+    // Procesar las nuevas imágenes si se subieron
+    let imagePaths = property.images; // Mantener las imágenes existentes
+
+    if (req.files && req.files.length > 0) {
+      imagePaths = req.files.map(file => file.path); // Actualizar con nuevas imágenes subidas
+    }
+
+    // Actualizar los campos de la propiedad
+    const updatedProperty = await Property.findByIdAndUpdate(id, {
+      ...req.body,
+      images: imagePaths // Actualizar las imágenes
+    }, { new: true });
+
     return res.json(updatedProperty);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 // Eliminar (o marcar como eliminada) una propiedad
 export const deleteProperty = async (req, res) => {
