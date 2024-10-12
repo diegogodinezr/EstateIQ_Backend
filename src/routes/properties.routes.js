@@ -5,7 +5,8 @@ import {
   getProperty, 
   createProperty, 
   updateProperty, 
-  deleteProperty 
+  deleteProperty,
+  updatePhysicalVisits
 } from '../controllers/properties.controller.js';
 import upload from '../multerConfig.js'; // Importamos la nueva configuración de Multer con Cloudinary
 
@@ -23,5 +24,8 @@ router.put('/properties/:id', authRequired, upload.array('images', 5), updatePro
 
 // Ruta para eliminar una propiedad (solo para el propietario de la propiedad)
 router.delete('/properties/:id', authRequired, deleteProperty);
+
+// Nueva ruta para actualizar las visitas presenciales
+router.put('/properties/:id/physical-visits', authRequired, updatePhysicalVisits);
 
 export default router;

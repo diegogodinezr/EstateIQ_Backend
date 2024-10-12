@@ -68,6 +68,10 @@ const propertySchema = new mongoose.Schema({
     type: Number,
     default: 0, // Contador de visualizaciones
   },
+  physicalVisits: {
+    type: Number,
+    default: 0, // Contador de visitas presenciales
+  },
   deletedAt: {
     type: Date, // Fecha de eliminación
   },

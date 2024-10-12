@@ -193,3 +193,24 @@ export const getDeletedProperties = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+// Actualizar el contador de visitas presenciales
+export const updatePhysicalVisits = async (req, res) => {
+  const { id } = req.params;
+  const { physicalVisits } = req.body;
+
+  try {
+    const property = await Property.findById(id);
+
+    if (!property) {
+      return res.status(404).json({ message: 'Property not found' });
+    }
+
+    // Actualizar el contador de visitas presenciales
+    property.physicalVisits = physicalVisits;
+    await property.save();
+
+    res.json({ message: 'Physical visits updated successfully', property });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
