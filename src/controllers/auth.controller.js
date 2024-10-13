@@ -77,121 +77,97 @@ export const profile = async (req, res) => {
 };
 
 export const getStatistics = async (req, res) => {
-    try {
-        // 1. Cantidad total de usuarios
-        const totalUsers = await User.countDocuments();
+  try {
+      // 1. Cantidad total de usuarios
+      const totalUsers = await User.countDocuments();
 
-        // 2. Cantidad total de propiedades activas
-        const totalProperties = await Property.countDocuments({ status: 'active' });
+      // 2. Cantidad total de propiedades activas
+      const totalProperties = await Property.countDocuments({ status: 'active' });
+      const totalPropertiesDeleted = await Property.countDocuments({ status: 'deleted' });
+      const activePercentage = (totalProperties / (totalProperties + totalPropertiesDeleted)) * 100;
 
-        // 3. Propiedades publicadas por cada usuario
-        const propertiesByUser = await User.aggregate([
-            {
-                $lookup: {
-                    from: 'properties',  // Nombre de la colección de propiedades
-                    localField: '_id',
-                    foreignField: 'user',  // Campo de referencia en `Property`
-                    as: 'userProperties'
-                }
-            },
-            {
-                $project: {
-                    email: 1,
-                    propertiesCount: { $size: "$userProperties" }  // Contar las propiedades por usuario
-                }
-            }
-        ]);
+      // 3. Propiedades publicadas por cada usuario
+      const propertiesByUser = await User.aggregate([
+          {
+              $lookup: {
+                  from: 'properties',
+                  localField: '_id',
+                  foreignField: 'user',
+                  as: 'userProperties'
+              }
+          },
+          {
+              $project: {
+                  email: 1,
+                  propertiesCount: { $size: "$userProperties" }
+              }
+          }
+      ]);
 
-        // 4. Cantidad de propiedades más solicitadas (mayor número de visualizaciones)
-        const mostViewedProperties = await Property.find().sort({ views: -1 }).limit(5);  // Las 5 propiedades más vistas
+      // 4. Cantidad de propiedades más solicitadas (mayor número de visualizaciones)
+      const mostViewedProperties = await Property.find().sort({ views: -1 }).limit(5);
 
-        // 5. Tiempo promedio que las propiedades permanecen publicadas
-        const averageTimeOnMarket = await Property.aggregate([
-            {
-                $match: { deletedAt: { $exists: true } }  // Solo propiedades eliminadas
-            },
-            {
-                $project: {
-                    timeOnMarket: { $subtract: ["$deletedAt", "$createdAt"] }
-                }
-            },
-            {
-                $group: {
-                    _id: null,
-                    averageTime: { $avg: "$timeOnMarket" }
-                }
-            }
-        ]);
+      // 5. Tiempo promedio que las propiedades permanecen publicadas (por motivo de eliminación)
+      const averageTimeOnMarketCompleted = await Property.aggregate([
+          { $match: { deleteReason: 'completed' } },
+          { $project: { timeOnMarket: { $subtract: ["$deletedAt", "$createdAt"] } } },
+          { $group: { _id: null, averageTime: { $avg: "$timeOnMarket" } } }
+      ]);
+      const averageTimeOnMarketCancelled = await Property.aggregate([
+          { $match: { deleteReason: 'cancelled' } },
+          { $project: { timeOnMarket: { $subtract: ["$deletedAt", "$createdAt"] } } },
+          { $group: { _id: null, averageTime: { $avg: "$timeOnMarket" } } }
+      ]);
 
-        // 6. Rendimiento por ubicación (transacciones completadas por zona)
-        const transactionsByLocation = await Property.aggregate([
-            {
-                $match: { deleteReason: 'completed' }
-            },
-            {
-                $group: {
-                    _id: "$location",
-                    totalCompleted: { $sum: 1 }
-                }
-            },
-            {
-                $sort: { totalCompleted: -1 }  // Ordenar por la cantidad de transacciones completadas
-            }
-        ]);
+      // 6. Rendimiento por ubicación (visitas físicas promedio por zona)
+      const visitsByLocation = await Property.aggregate([
+          { $group: { _id: "$location", averageVisits: { $avg: "$physicalVisits" }, totalCompleted: { $sum: 1 } } },
+          { $sort: { totalCompleted: -1 } }
+      ]);
 
-        // 7. Cantidad de propiedades eliminadas por motivo
-        const deletedPropertiesStats = await Property.aggregate([
-            {
-                $match: { status: 'deleted' }
-            },
-            {
-                $group: {
-                    _id: "$deleteReason",
-                    total: { $sum: 1 }
-                }
-            }
-        ]);
+      // 7. Cantidad de propiedades eliminadas por motivo
+      const deletedPropertiesStats = await Property.aggregate([
+          { $match: { status: 'deleted' } },
+          { $group: { _id: "$deleteReason", total: { $sum: 1 } } }
+      ]);
 
-        // 8. Cantidad de propiedades en venta y en renta
-        const propertiesForSale = await Property.countDocuments({ type: 'sale', status: 'active' });
-        const propertiesForRent = await Property.countDocuments({ type: 'rent', status: 'active' });
+      // 8. Cantidad de propiedades en venta y en renta
+      const propertiesForSale = await Property.countDocuments({ type: 'sale', status: 'active' });
+      const propertiesForRent = await Property.countDocuments({ type: 'rent', status: 'active' });
 
-        // 9. Cantidad de propiedades por ubicación
-        const propertiesByLocation = await Property.aggregate([
-            {
-                $group: {
-                    _id: "$location",
-                    total: { $sum: 1 }
-                }
-            },
-            {
-                $sort: { total: -1 }
-            }
-        ]);
+      // 9. Cantidad de propiedades por ubicación
+      const propertiesByLocation = await Property.aggregate([
+          { $group: { _id: "$location", total: { $sum: 1 } } },
+          { $sort: { total: -1 } }
+      ]);
 
-        // NUEVAS ESTADÍSTICAS:
+      // 10. Tasa de propiedades completadas/canceladas (en comparación con eliminadas por otro motivo)
+      const completionRate = deletedPropertiesStats.find(item => item._id === 'completed')?.total || 0;
+      const cancellationRate = deletedPropertiesStats.find(item => item._id === 'cancelled')?.total || 0;
+      const otherDeletionRate = deletedPropertiesStats.find(item => item._id === 'other')?.total || 0;
 
-        // 10. Tasa de propiedades completadas/canceladas (en comparación con eliminadas por otro motivo)
-        const completionRate = deletedPropertiesStats.find(item => item._id === 'completed')?.total || 0;
-        const cancellationRate = deletedPropertiesStats.find(item => item._id === 'cancelled')?.total || 0;
+      const totalDeleted = completionRate + cancellationRate + otherDeletionRate;
+      const completionPercentage = totalDeleted > 0 ? (completionRate / totalDeleted) * 100 : 0;
+      const cancellationPercentage = totalDeleted > 0 ? (cancellationRate / totalDeleted) * 100 : 0;
 
-        // Respuesta con las estadísticas
-        res.json({
-            totalUsers,
-            totalProperties,
-            propertiesByUser,
-            mostViewedProperties,
-            averageTimeOnMarket: averageTimeOnMarket.length > 0 ? averageTimeOnMarket[0].averageTime : 0,
-            transactionsByLocation,
-            deletedPropertiesStats,
-            propertiesForSale,
-            propertiesForRent,
-            propertiesByLocation,
-            completionRate,
-            cancellationRate
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+      // Respuesta con las estadísticas
+      res.json({
+          totalUsers,
+          totalProperties,
+          activePercentage,
+          propertiesByUser,
+          mostViewedProperties,
+          averageTimeOnMarketCompleted: averageTimeOnMarketCompleted.length > 0 ? averageTimeOnMarketCompleted[0].averageTime : 0,
+          averageTimeOnMarketCancelled: averageTimeOnMarketCancelled.length > 0 ? averageTimeOnMarketCancelled[0].averageTime : 0,
+          visitsByLocation,
+          deletedPropertiesStats,
+          propertiesForSale,
+          propertiesForRent,
+          propertiesByLocation,
+          completionPercentage,
+          cancellationPercentage
+      });
+  } catch (error) {
+      res.status(500).json({ message: error.message });
+  }
 };
-
