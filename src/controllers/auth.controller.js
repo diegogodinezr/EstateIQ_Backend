@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { TOKEN_SECRET } from '../config.js';
 import Property from '../models/property.model.js';
 
+// controllers de usuarios
 const createToken = (payload) => {
   return jwt.sign(payload, TOKEN_SECRET, { expiresIn: '1d' });
 };
@@ -22,11 +23,12 @@ export const register = async (req, res) => {
     });
 
     const userSaved = await newUser.save();
-    const token = createToken({ id: userSaved._id });
+    const token = createToken({ id: userSaved._id, role: userSaved.role }); // Agregar el rol al token
 
     res.json({
       id: userSaved._id,
       email: userSaved.email,
+      role: userSaved.role, // Opcional: incluir el rol en la respuesta
       token: token
     });
   } catch (error) {
@@ -43,11 +45,12 @@ export const login = async (req, res) => {
     const isMatch = await bcrypt.compare(password, userFound.password);
     if (!isMatch) return res.status(400).json({ message: "Incorrect password" });
 
-    const token = createToken({ id: userFound._id });
+    const token = createToken({ id: userFound._id, role: userFound.role }); // Agregar el rol al token
 
     res.json({
       id: userFound._id,
       email: userFound.email,
+      role: userFound.role, // Opcional: incluir el rol en la respuesta
       token: token
     });
   } catch (error) {
@@ -86,6 +89,20 @@ export const getStatistics = async (req, res) => {
       const totalPropertiesDeleted = await Property.countDocuments({ status: 'deleted' });
       const activePercentage = (totalProperties / (totalProperties + totalPropertiesDeleted)) * 100;
 
+    // 1. Distribución de tipos de propiedades
+    const propertyTypeDistribution = await Property.aggregate([
+      { $group: { _id: "$propertyType", count: { $sum: 1 } } }
+    ]);
+
+    const avgPriceByTypeAndLocation = await Property.aggregate([
+      { 
+        $group: { 
+          _id: { type: "$propertyType", location: "$location" }, 
+          avgPrice: { $avg: "$price" } 
+        } 
+      }
+    ]);
+
       // 3. Propiedades publicadas por cada usuario
       const propertiesByUser = await User.aggregate([
           {
@@ -103,6 +120,70 @@ export const getStatistics = async (req, res) => {
               }
           }
       ]);
+
+          // 5. Actividad de usuarios
+    const userActivity = await User.aggregate([
+      {
+        $lookup: {
+          from: 'properties',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'properties'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalUsers: { $sum: 1 },
+          usersWithProperties: { 
+            $sum: { $cond: [{ $gt: [{ $size: "$properties" }, 0] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+        // 6. Tasa de conversión de vistas a visitas físicas
+        const conversionRate = await Property.aggregate([
+          {
+            $group: {
+              _id: null,
+              totalViews: { $sum: "$views" },
+              totalPhysicalVisits: { $sum: "$physicalVisits" }
+            }
+          },
+          {
+            $project: {
+              conversionRate: { 
+                $cond: [
+                  { $eq: ["$totalViews", 0] },
+                  0,
+                  { $multiply: [{ $divide: ["$totalPhysicalVisits", "$totalViews"] }, 100] }
+                ]
+              }
+            }
+          }
+        ]);
+
+      // 7. Usuarios más activos
+    const mostActiveUsers = await User.aggregate([
+      {
+        $lookup: {
+          from: 'properties',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'properties'
+        }
+      },
+      {
+        $project: {
+          email: 1,
+          propertyCount: { $size: "$properties" }
+        }
+      },
+      { $sort: { propertyCount: -1 } },
+      { $limit: 5 }
+    ]);
+
 
       // 4. Cantidad de propiedades más solicitadas (mayor número de visualizaciones)
       const mostViewedProperties = await Property.find().sort({ views: -1 }).limit(5);
@@ -157,6 +238,11 @@ export const getStatistics = async (req, res) => {
           activePercentage,
           propertiesByUser,
           mostViewedProperties,
+          propertyTypeDistribution,
+          avgPriceByTypeAndLocation,
+          userActivity: userActivity[0],
+          conversionRate: conversionRate[0],
+          mostActiveUsers,
           averageTimeOnMarketCompleted: averageTimeOnMarketCompleted.length > 0 ? averageTimeOnMarketCompleted[0].averageTime : 0,
           averageTimeOnMarketCancelled: averageTimeOnMarketCancelled.length > 0 ? averageTimeOnMarketCancelled[0].averageTime : 0,
           visitsByLocation,
