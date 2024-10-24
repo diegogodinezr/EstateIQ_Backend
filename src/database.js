@@ -1,11 +1,8 @@
 import mongoose from 'mongoose';
-import dotenv from 'dotenv';
-
-dotenv.config(); // Cargar variables de entorno
 
 export const connectDB = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect('mongodb+srv://diegogodinezr:diego123@cluster0.hgwcvxq.mongodb.net/');
     console.log('MongoDB is Connected...');
   } catch (err) {
     console.error(err.message);

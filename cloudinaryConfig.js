@@ -1,13 +1,8 @@
 import { v2 as cloudinary } from 'cloudinary';
-import dotenv from 'dotenv';
-
-dotenv.config(); // Cargar variables de entorno
 
 // Configura Cloudinary con tus credenciales
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: 'dnruxg6t5', // Tu Cloud Name
+  api_key: '247667666578712', // Tu API Key
+  api_secret: 'oVb7UuSgiU_5mnUA7Qxb3Ox-mOY', // Tu API Secret
 });
-
-export default cloudinary;
