@@ -6,3 +6,5 @@ cloudinary.config({
   api_key: '247667666578712', // Tu API Key
   api_secret: 'oVb7UuSgiU_5mnUA7Qxb3Ox-mOY', // Tu API Secret
 });
+
+export default cloudinary;
