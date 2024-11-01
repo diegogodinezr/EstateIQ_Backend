@@ -14,7 +14,7 @@ export const register = async (req, res) => {
   const { email, password } = req.body;
   try {
     const userFound = await User.findOne({ email });
-    if (userFound) return res.status(400).json(['The email is already in use']);
+    if (userFound) return res.status(400).json(['El email ya esta en uso']);
 
     const passwordHash = await bcrypt.hash(password, 10);
     const newUser = new User({
@@ -40,10 +40,10 @@ export const login = async (req, res) => {
   const { email, password } = req.body;
   try {
     const userFound = await User.findOne({ email });
-    if (!userFound) return res.status(400).json({ message: "User not found" });
+    if (!userFound) return res.status(400).json({ message: "Usuario no encontrado" });
 
     const isMatch = await bcrypt.compare(password, userFound.password);
-    if (!isMatch) return res.status(400).json({ message: "Incorrect password" });
+    if (!isMatch) return res.status(400).json({ message: "Contraseña incorrecta" });
 
     const token = createToken({ id: userFound._id, role: userFound.role }); // Agregar el rol al token
 
@@ -65,7 +65,7 @@ export const logout = (req, res) => {
 export const profile = async (req, res) => {
   try {
     const userFound = await User.findById(req.user.id);
-    if (!userFound) return res.status(400).json({ message: "User not found" });
+    if (!userFound) return res.status(400).json({ message: "Usuario no encontrado" });
 
     const userProperties = await Property.find({ user: req.user.id });
 
@@ -75,7 +75,7 @@ export const profile = async (req, res) => {
       properties: userProperties,
     });
   } catch (error) {
-    return res.status(500).json({ message: 'Error retrieving profile information' });
+    return res.status(500).json({ message: 'Error al obtener informacion' });
   }
 };
 
@@ -184,6 +184,19 @@ export const getStatistics = async (req, res) => {
       { $limit: 5 }
     ]);
 
+      const usersRegisteredPerMonth = await User.aggregate([
+        {
+            $group: {
+                _id: {
+                    $dateToString: { format: "%Y-%m", date: "$createdAt" }
+                },
+                count: { $sum: 1 }
+            }
+        },
+        {
+            $sort: { "_id": 1 } // Ordena por fecha ascendente
+        }
+    ]);
 
       // 4. Cantidad de propiedades más solicitadas (mayor número de visualizaciones)
       const mostViewedProperties = await Property.find().sort({ views: -1 }).limit(5);
@@ -251,7 +264,8 @@ export const getStatistics = async (req, res) => {
           propertiesForRent,
           propertiesByLocation,
           completionPercentage,
-          cancellationPercentage
+          cancellationPercentage,
+          usersRegisteredPerMonth
       });
   } catch (error) {
       res.status(500).json({ message: error.message });

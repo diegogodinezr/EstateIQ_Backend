@@ -13,9 +13,12 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        default: 'user', // El rol por defecto es 'user'
-        enum: ['user', 'admin'] // Solo puede ser 'user' o 'admin'
+        default: 'user',
+        enum: ['user', 'admin']
     }
+}, {
+    timestamps: true // Agrega automáticamente los campos `createdAt` y `updatedAt`
 });
 
-export default mongoose.model('User', userSchema);
+const User = mongoose.model('User', userSchema);
+export default User;
