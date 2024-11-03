@@ -9,7 +9,24 @@ const propertySchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  location: {
+  // Campos desglosados para la ubicación
+  calleYNumero: {
+    type: String,
+    required: true,
+  },
+  colonia: {
+    type: String,
+    required: true,
+  },
+  codigoPostal: {
+    type: String,
+    required: true,
+  },
+  estado: {
+    type: String,
+    required: true,
+  },
+  municipio: {
     type: String,
     required: true,
   },
@@ -35,54 +52,52 @@ const propertySchema = new mongoose.Schema({
   }],
   type: {
     type: String,
-    enum: ['sale', 'rent'], // 'sale' o 'rent'
+    enum: ['sale', 'rent'],
     required: true,
-    default: 'sale', // Valor por defecto
+    default: 'sale',
   },
   propertyType: {
     type: String,
-    enum: ['House', 'Apartment', 'Land', 'Commercial'], // Opciones de tipos de propiedad
+    enum: ['House', 'Apartment', 'Land', 'Commercial'],
     required: true,
-    default: 'House', // Valor por defecto
+    default: 'House',
   },
   contactNumber: {
     type: String,
-    required: true, // El número de teléfono del publicador es requerido
+    required: true,
   },
   isFeatured: {
     type: Boolean,
-    default: false, // Valor por defecto es 'false' (no destacado)
+    default: false,
   },
   user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User', // Hace referencia al modelo User
+    ref: 'User',
     required: true,
   },
   createdAt: {
     type: Date,
-    default: Date.now, // Agrega la fecha de creación automáticamente
+    default: Date.now,
   },
-
-  // Nuevos campos para estadísticas
   views: {
     type: Number,
-    default: 0, // Contador de visualizaciones
+    default: 0,
   },
   physicalVisits: {
     type: Number,
-    default: 0, // Contador de visitas presenciales
+    default: 0,
   },
   deletedAt: {
-    type: Date, // Fecha de eliminación
+    type: Date,
   },
   deleteReason: {
-    type: String, // Motivo de eliminación (completada, cancelada, etc.)
+    type: String,
     enum: ['completed', 'cancelled', 'other'],
   },
   status: {
     type: String,
-    enum: ['active', 'deleted'], // Estado de la propiedad: activa o eliminada
-    default: 'active', // Valor por defecto es activa
+    enum: ['active', 'deleted'],
+    default: 'active',
   },
 });
 

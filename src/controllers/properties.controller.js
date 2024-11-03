@@ -1,13 +1,20 @@
 import Property from '../models/property.model.js';
 import validator from 'validator';
 
+// Función para normalizar campos de texto
+const normalizeText = (text) => text.toLowerCase().replace(/[^a-z0-9\s]/gi, '').trim();
+
 // Crear una propiedad nueva
 export const createProperty = async (req, res) => {
   try {
     const {
       title,
       price,
-      location,
+      calleYNumero,
+      colonia,
+      codigoPostal,
+      estado,
+      municipio,
       bedrooms,
       bathrooms,
       squaremeters,
@@ -18,12 +25,20 @@ export const createProperty = async (req, res) => {
       isFeatured
     } = req.body;
 
-    // Normalizar la ubicación
-    let normalizedLocation = location.toLowerCase().replace(/[^a-z0-9\s]/gi, '');
+    // Normalizar los campos de ubicación
+    const normalizedCalleYNumero = normalizeText(calleYNumero);
+    const normalizedColonia = normalizeText(colonia);
+    const normalizedEstado = normalizeText(estado);
+    const normalizedMunicipio = normalizeText(municipio);
 
-    // Verificar que la ubicación sea válida
-    if (!validator.isAlphanumeric(normalizedLocation.replace(/\s/g, ''))) {
-      return res.status(400).json({ message: 'Invalid location format' });
+    // Verificar que los campos de ubicación sean válidos
+    if (
+      !validator.isAlphanumeric(normalizedCalleYNumero.replace(/\s/g, '')) ||
+      !validator.isAlphanumeric(normalizedColonia.replace(/\s/g, '')) ||
+      !validator.isAlphanumeric(normalizedEstado.replace(/\s/g, '')) ||
+      !validator.isAlphanumeric(normalizedMunicipio.replace(/\s/g, ''))
+    ) {
+      return res.status(400).json({ message: 'Invalid address format' });
     }
 
     // Obtener las URLs de las imágenes subidas a Cloudinary
@@ -35,7 +50,11 @@ export const createProperty = async (req, res) => {
     const newProperty = new Property({
       title,
       price,
-      location: normalizedLocation,
+      calleYNumero: normalizedCalleYNumero,
+      colonia: normalizedColonia,
+      codigoPostal,
+      estado: normalizedEstado,
+      municipio: normalizedMunicipio,
       bedrooms,
       bathrooms,
       squaremeters,
@@ -55,13 +74,11 @@ export const createProperty = async (req, res) => {
   }
 };
 
-// Los demás controladores no necesitan modificación, ya que no manejan las imágenes directamente.
-
-// Obtener todas las propiedades, con posibilidad de filtrar por tipo, ubicación, precio, y destacadas
+// Obtener todas las propiedades, con posibilidad de filtrar por tipo, estado, municipio, precio, y destacadas
 export const getProperties = async (req, res) => {
   try {
-    const { type, propertyType, location, minPrice, maxPrice, isFeatured } = req.query;
-    const query = {status: 'active'};
+    const { type, propertyType, estado, municipio, minPrice, maxPrice, isFeatured } = req.query;
+    const query = { status: 'active' };
 
     if (type && type !== 'all') {
       query.type = type;
@@ -71,8 +88,12 @@ export const getProperties = async (req, res) => {
       query.propertyType = propertyType;
     }
 
-    if (location) {
-      query.location = { $regex: location, $options: 'i' };
+    if (estado) {
+      query.estado = { $regex: estado, $options: 'i' }; // Filtro por estado con búsqueda insensible a mayúsculas y minúsculas
+    }
+
+    if (municipio) {
+      query.municipio = { $regex: municipio, $options: 'i' }; // Filtro por municipio con búsqueda insensible a mayúsculas y minúsculas
     }
 
     if (minPrice) {
@@ -94,23 +115,6 @@ export const getProperties = async (req, res) => {
   }
 };
 
-// Obtener una propiedad por su ID y aumentar el contador de visualizaciones
-export const getProperty = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const property = await Property.findById(id);
-    if (!property) return res.status(404).json({ message: 'Property not found' });
-
-    // Incrementa el número de visualizaciones
-    property.views += 1;
-    await property.save();
-
-    res.status(200).json(property);
-  } catch (error) {
-    res.status(400).json({ message: error.message });
-  }
-};
-
 // Actualizar propiedad
 export const updateProperty = async (req, res) => {
   const { id } = req.params;
@@ -125,6 +129,12 @@ export const updateProperty = async (req, res) => {
     if (property.user.toString() !== userId) {
       return res.status(403).json({ message: 'You are not authorized to update this property' });
     }
+
+    // Normalizar los nuevos campos de ubicación si están presentes
+    if (req.body.calleYNumero) req.body.calleYNumero = normalizeText(req.body.calleYNumero);
+    if (req.body.colonia) req.body.colonia = normalizeText(req.body.colonia);
+    if (req.body.estado) req.body.estado = normalizeText(req.body.estado);
+    if (req.body.municipio) req.body.municipio = normalizeText(req.body.municipio);
 
     // Procesar las nuevas imágenes si se subieron
     let imagePaths = property.images; // Mantener las imágenes existentes
@@ -145,6 +155,22 @@ export const updateProperty = async (req, res) => {
   }
 };
 
+// Obtener una propiedad por su ID y aumentar el contador de visualizaciones
+export const getProperty = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const property = await Property.findById(id);
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+
+    // Incrementa el número de visualizaciones
+    property.views += 1;
+    await property.save();
+
+    res.status(200).json(property);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
 
 // Eliminar (o marcar como eliminada) una propiedad
 export const deleteProperty = async (req, res) => {

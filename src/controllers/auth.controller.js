@@ -97,7 +97,7 @@ export const getStatistics = async (req, res) => {
     const avgPriceByTypeAndLocation = await Property.aggregate([
       { 
         $group: { 
-          _id: { type: "$propertyType", location: "$location" }, 
+          _id: { type: "$propertyType", municipio: "$municipio" }, 
           avgPrice: { $avg: "$price" } 
         } 
       }
@@ -215,7 +215,7 @@ export const getStatistics = async (req, res) => {
 
       // 6. Rendimiento por ubicación (visitas físicas promedio por zona)
       const visitsByLocation = await Property.aggregate([
-          { $group: { _id: "$location", averageVisits: { $avg: "$physicalVisits" }, totalCompleted: { $sum: 1 } } },
+          { $group: { _id: "$municipio", averageVisits: { $avg: "$physicalVisits" }, totalCompleted: { $sum: 1 } } },
           { $sort: { totalCompleted: -1 } }
       ]);
 
@@ -231,7 +231,7 @@ export const getStatistics = async (req, res) => {
 
       // 9. Cantidad de propiedades por ubicación
       const propertiesByLocation = await Property.aggregate([
-          { $group: { _id: "$location", total: { $sum: 1 } } },
+          { $group: { _id: "$municipio", total: { $sum: 1 } } },
           { $sort: { total: -1 } }
       ]);
 
